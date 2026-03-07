@@ -1,0 +1,110 @@
+.home {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.home__hero {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.home__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 3.5rem);
+  font-weight: 700;
+  color: var(--color-accent);
+  margin: 0 0 0.75rem;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 24px rgba(212, 175, 55, 0.25);
+}
+
+.home__tagline {
+  font-size: 1.2rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 36ch;
+  margin-inline: auto;
+}
+
+.home__intro {
+  margin-bottom: 2.5rem;
+}
+
+.home__intro-text {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  margin: 0;
+  max-width: 60ch;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.home__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 3rem;
+}
+
+.home__cta {
+  display: inline-block;
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s, color 0.2s;
+}
+
+.home__cta--primary {
+  background: var(--color-accent);
+  color: var(--color-bg-dark);
+}
+
+.home__cta--primary:hover {
+  background: var(--color-accent-light);
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.35);
+  transform: translateY(-1px);
+}
+
+.home__cta--secondary {
+  background: transparent;
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent);
+}
+
+.home__cta--secondary:hover {
+  background: rgba(212, 175, 55, 0.1);
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.2);
+}
+
+.home__features {
+  padding: 2rem;
+  background: var(--color-card-bg);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 8px;
+}
+
+.home__features-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--color-accent);
+  margin: 0 0 1.25rem;
+  text-align: center;
+}
+
+.home__feature-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: var(--color-text);
+  line-height: 1.9;
+  max-width: 40ch;
+  margin-inline: auto;
+}
+
+.home__feature-list li {
+  margin-bottom: 0.35rem;
+}
