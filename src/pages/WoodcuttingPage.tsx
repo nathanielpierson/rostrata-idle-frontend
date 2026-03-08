@@ -7,11 +7,43 @@ const BUR_OAK_IMAGE =
 const CUT_DURATION_MS = 15_000
 const XP_PER_CUT = 10
 
+const BASE_XP_LEVEL_2 = 500
+const LEVEL_MULTIPLIER = 1.09
+const MAX_LEVEL = 100
+
+/** Total XP required to reach a level (level 1 = 0, level 2 = 500, then +9% per level). */
+function xpToReachLevel(level: number): number {
+  if (level <= 1) return 0
+  if (level > MAX_LEVEL) level = MAX_LEVEL
+  return (
+    BASE_XP_LEVEL_2 *
+    (Math.pow(LEVEL_MULTIPLIER, level - 1) - 1) /
+    (LEVEL_MULTIPLIER - 1)
+  )
+}
+
+function getLevelFromXp(xp: number): number {
+  if (xp < BASE_XP_LEVEL_2) return 1
+  for (let level = MAX_LEVEL; level >= 1; level--) {
+    if (xp >= xpToReachLevel(level)) return level
+  }
+  return 1
+}
+
 export default function WoodcuttingPage() {
   const [xp, setXp] = useState(0)
   const [isCutting, setIsCutting] = useState(false)
   const [progress, setProgress] = useState(0)
   const cutStartRef = useRef<number | null>(null)
+
+  const level = getLevelFromXp(xp)
+  const xpAtLevel = xpToReachLevel(level)
+  const xpAtNextLevel =
+    level < MAX_LEVEL ? xpToReachLevel(level + 1) : xpAtLevel
+  const xpInLevel = xp - xpAtLevel
+  const xpNeededForNext = xpAtNextLevel - xpAtLevel
+  const progressToNext =
+    xpNeededForNext > 0 ? (xpInLevel / xpNeededForNext) * 100 : 100
 
   const handleTreeClick = useCallback(() => {
     if (isCutting) return
@@ -38,11 +70,24 @@ export default function WoodcuttingPage() {
   return (
     <main className="woodcutting">
       <h1 className="woodcutting__title">Woodcutting</h1>
-      <p className="woodcutting__level">Level 1</p>
+      <p className="woodcutting__level">Level {level}</p>
 
       <div className="woodcutting__stats">
         <span className="woodcutting__xp">XP: {xp}</span>
+        {level < MAX_LEVEL && (
+          <span className="woodcutting__xp-next">
+            ({Math.floor(xpInLevel)} / {Math.floor(xpNeededForNext)} to next)
+          </span>
+        )}
       </div>
+      {level < MAX_LEVEL && (
+        <div className="woodcutting__level-progress-wrap" role="progressbar" aria-valuenow={progressToNext} aria-valuemin={0} aria-valuemax={100} aria-label="Progress to next level">
+          <div
+            className="woodcutting__level-progress-bar"
+            style={{ width: `${progressToNext}%` }}
+          />
+        </div>
+      )}
 
       <section className="woodcutting__area">
         <p className="woodcutting__hint">
