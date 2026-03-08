@@ -1,25 +1,26 @@
-import './Header.css';
+import { Link } from 'react-router-dom'
+import './Header.css'
 
 const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/play', label: 'Play' },
-  { href: '/leaderboard', label: 'Leaderboard' },
-  { href: '/about', label: 'About' },
-];
+  { to: '/', label: 'Home' },
+  { to: '/play', label: 'Play' },
+  { to: '/leaderboard', label: 'Leaderboard' },
+  { to: '/about', label: 'About' },
+]
 
 export default function Header() {
   return (
     <header className="header">
-      <a href="/" className="header__brand">
+      <Link to="/" className="header__brand">
         Rostrata Idle
-      </a>
+      </Link>
       <nav className="header__nav">
-        {navLinks.map(({ href, label }) => (
-          <a key={href} href={href} className="header__link">
+        {navLinks.map(({ to, label }) => (
+          <Link key={to} to={to} className="header__link">
             {label}
-          </a>
+          </Link>
         ))}
       </nav>
     </header>
-  );
+  )
 }

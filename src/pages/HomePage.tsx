@@ -1,4 +1,5 @@
-import './HomePage.css';
+import { Link } from 'react-router-dom'
+import './HomePage.css'
 
 export default function HomePage() {
   return (
@@ -17,12 +18,12 @@ export default function HomePage() {
       </section>
 
       <section className="home__actions">
-        <a href="/play" className="home__cta home__cta--primary">
+        <Link to="/play" className="home__cta home__cta--primary">
           Enter the Realm
-        </a>
-        <a href="/about" className="home__cta home__cta--secondary">
+        </Link>
+        <Link to="/about" className="home__cta home__cta--secondary">
           Learn More
-        </a>
+        </Link>
       </section>
 
       <section className="home__features">

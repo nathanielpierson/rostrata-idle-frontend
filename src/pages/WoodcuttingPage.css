@@ -1,0 +1,110 @@
+.woodcutting {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.woodcutting__title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  margin: 0 0 0.25rem;
+  letter-spacing: 0.04em;
+}
+
+.woodcutting__level {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1.5rem;
+}
+
+.woodcutting__stats {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-card-bg);
+  border-radius: 6px;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.woodcutting__xp {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--color-accent-light);
+}
+
+.woodcutting__area {
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--color-card-bg);
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.woodcutting__hint {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
+
+.woodcutting__progress-wrap {
+  height: 8px;
+  background: var(--color-bg-dark);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  max-width: 280px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.woodcutting__progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light));
+  border-radius: 4px;
+  transition: width 100ms linear;
+}
+
+.woodcutting__tree {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.woodcutting__tree:hover:not(:disabled) {
+  transform: scale(1.02);
+  filter: brightness(1.05);
+}
+
+.woodcutting__tree:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.woodcutting__tree:disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+  filter: saturate(0.7);
+}
+
+.woodcutting__tree-img {
+  width: 200px;
+  height: auto;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.woodcutting__tree-label {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--color-accent);
+}
