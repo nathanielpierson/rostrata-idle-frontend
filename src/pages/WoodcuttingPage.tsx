@@ -1,10 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { fetchTrees } from '../api/trees'
+import type { Tree } from '../types/tree'
 import './WoodcuttingPage.css'
 
-const BUR_OAK_IMAGE =
-  'https://scontent.fric1-2.fna.fbcdn.net/v/t51.75761-15/500482681_18323013763204797_5185688588855585874_n.jpg?stp=dst-jpegr_s1080x2048_tt6&_nc_cat=106&ccb=1-7&_nc_sid=13d280&_nc_ohc=ECYjqqC5NO0Q7kNvwEZ9Wdm&_nc_oc=Adn4-Nef1KXxlIdIoD6ZwWHVDHK_jH9O9OC7gtJ5fJc0Q6FUKBPcfBMJIo9QdckrBKQ&_nc_zt=23&se=-1&_nc_ht=scontent.fric1-2.fna&_nc_gid=ID0GTwlnUcOMZMIo2FvgmQ&_nc_ss=8&oh=00_Afzllo0n5zBwnmHEPhtZYeNlL_dABO3HvOXDKartkMNlcw&oe=69B39BD4'
-
-const CUT_DURATION_MS = 15_000
 const XP_PER_CUT = 10
 
 const BASE_XP_LEVEL_2 = 500
@@ -30,11 +28,27 @@ function getLevelFromXp(xp: number): number {
   return 1
 }
 
+function formatChopSeconds(seconds: number): string {
+  if (Number.isInteger(seconds)) return `${seconds}s`
+  return `${seconds.toFixed(1)}s`
+}
+
+function chopDurationMs(tree: Tree): number {
+  return Math.max(1, tree.secondsToChop) * 1000
+}
+
 export default function WoodcuttingPage() {
   const [xp, setXp] = useState(0)
+  const [trees, setTrees] = useState<Tree[]>([])
+  const [isLoadingTrees, setIsLoadingTrees] = useState(true)
+  const [treesError, setTreesError] = useState<string | null>(null)
+
   const [isCutting, setIsCutting] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [cuttingTree, setCuttingTree] = useState<Tree | null>(null)
+
   const cutStartRef = useRef<number | null>(null)
+  const cutDurationMsRef = useRef(15_000)
 
   const level = getLevelFromXp(xp)
   const xpAtLevel = xpToReachLevel(level)
@@ -45,27 +59,64 @@ export default function WoodcuttingPage() {
   const progressToNext =
     xpNeededForNext > 0 ? (xpInLevel / xpNeededForNext) * 100 : 100
 
-  const handleTreeClick = useCallback(() => {
-    if (isCutting) return
-    setIsCutting(true)
-    setProgress(0)
-    cutStartRef.current = Date.now()
-  }, [isCutting])
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      const { trees: list, error } = await fetchTrees()
+      if (!mounted) return
+      setTrees(list)
+      setTreesError(error)
+      setIsLoadingTrees(false)
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const startChop = useCallback(
+    (tree: Tree) => {
+      if (isCutting || level < tree.levelRequirement) return
+      const ms = chopDurationMs(tree)
+      cutDurationMsRef.current = ms
+      cutStartRef.current = Date.now()
+      setCuttingTree(tree)
+      setIsCutting(true)
+      setProgress(0)
+    },
+    [isCutting, level],
+  )
 
   useEffect(() => {
-    if (!isCutting || cutStartRef.current === null) return
+    if (!isCutting || cutStartRef.current === null || !cuttingTree) return
+    const durationMs = cutDurationMsRef.current
     const interval = setInterval(() => {
       const elapsed = Date.now() - (cutStartRef.current ?? 0)
-      setProgress(Math.min((elapsed / CUT_DURATION_MS) * 100, 100))
-      if (elapsed >= CUT_DURATION_MS) {
+      setProgress(Math.min((elapsed / durationMs) * 100, 100))
+      if (elapsed >= durationMs) {
         setXp((prev) => prev + XP_PER_CUT)
         setIsCutting(false)
         setProgress(0)
+        setCuttingTree(null)
         cutStartRef.current = null
       }
     }, 100)
     return () => clearInterval(interval)
-  }, [isCutting])
+  }, [isCutting, cuttingTree])
+
+  const activeDurationMs = cuttingTree
+    ? chopDurationMs(cuttingTree)
+    : cutDurationMsRef.current
+
+  const hintWhenIdle = (): string => {
+    if (isLoadingTrees) return 'Loading trees…'
+    if (treesError)
+      return treesError
+    if (trees.length === 0) {
+      return 'No trees in the database. On the backend, seed defaults (POST /trees/seed-defaults) or add trees via POST /trees.'
+    }
+    return 'Click a tree you are high enough level to chop.'
+  }
 
   return (
     <main className="woodcutting">
@@ -81,7 +132,14 @@ export default function WoodcuttingPage() {
         )}
       </div>
       {level < MAX_LEVEL && (
-        <div className="woodcutting__level-progress-wrap" role="progressbar" aria-valuenow={progressToNext} aria-valuemin={0} aria-valuemax={100} aria-label="Progress to next level">
+        <div
+          className="woodcutting__level-progress-wrap"
+          role="progressbar"
+          aria-valuenow={progressToNext}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Progress to next level"
+        >
           <div
             className="woodcutting__level-progress-bar"
             style={{ width: `${progressToNext}%` }}
@@ -91,9 +149,9 @@ export default function WoodcuttingPage() {
 
       <section className="woodcutting__area">
         <p className="woodcutting__hint">
-          {isCutting
-            ? `Cutting... ${Math.ceil((CUT_DURATION_MS / 1000) * (1 - progress / 100))}s`
-            : 'Click the bur oak to chop.'}
+          {isCutting && cuttingTree
+            ? `Cutting ${cuttingTree.name}… ${Math.ceil((activeDurationMs / 1000) * (1 - progress / 100))}s`
+            : hintWhenIdle()}
         </p>
         {isCutting && (
           <div className="woodcutting__progress-wrap">
@@ -103,20 +161,59 @@ export default function WoodcuttingPage() {
             />
           </div>
         )}
-        <button
-          type="button"
-          className="woodcutting__tree"
-          onClick={handleTreeClick}
-          disabled={isCutting}
-          aria-label="Chop bur oak"
-        >
-          <img
-            src={BUR_OAK_IMAGE}
-            alt="Bur oak"
-            className="woodcutting__tree-img"
-          />
-          <span className="woodcutting__tree-label">Bur Oak</span>
-        </button>
+
+        <ul className="woodcutting__trees">
+          {trees.map((tree) => {
+            const locked = level < tree.levelRequirement
+            const isThisCutting = isCutting && cuttingTree?.id === tree.id
+            return (
+              <li key={tree.id} className="woodcutting__tree-item">
+                <button
+                  type="button"
+                  className={
+                    locked
+                      ? 'woodcutting__tree woodcutting__tree--locked'
+                      : 'woodcutting__tree'
+                  }
+                  onClick={() => startChop(tree)}
+                  disabled={isCutting || locked}
+                  aria-label={
+                    locked
+                      ? `${tree.name}, requires level ${tree.levelRequirement}`
+                      : `Chop ${tree.name}`
+                  }
+                >
+                  {tree.imageUrl ? (
+                    <img
+                      src={tree.imageUrl}
+                      alt={tree.name}
+                      className="woodcutting__tree-img"
+                    />
+                  ) : (
+                    <div className="woodcutting__tree-img woodcutting__tree-img--placeholder">
+                      No image
+                    </div>
+                  )}
+                  <span className="woodcutting__tree-label">{tree.name}</span>
+                  <span className="woodcutting__tree-meta">
+                    Lv {tree.levelRequirement} ·{' '}
+                    {formatChopSeconds(tree.secondsToChop)}
+                  </span>
+                  {locked && (
+                    <span className="woodcutting__tree-lock">
+                      Need Lv {tree.levelRequirement}
+                    </span>
+                  )}
+                  {isThisCutting && (
+                    <span className="woodcutting__tree-active" aria-live="polite">
+                      Cutting…
+                    </span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
       </section>
     </main>
   )
