@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import FishingPage from './pages/FishingPage'
 import MiningPage from './pages/MiningPage'
+import HuntingPage from './pages/HuntingPage'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/play/woodcutting" element={<WoodcuttingPage />} />
         <Route path="/play/fishing" element={<FishingPage />} />
         <Route path="/play/mining" element={<MiningPage />} />
+        <Route path="/play/hunting" element={<HuntingPage />} />
         <Route path="/skills" element={<SkillsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />

@@ -42,6 +42,35 @@
   background: rgba(212, 175, 55, 0.1);
 }
 
+.header__link--cta {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.header__user {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  padding: 0.35rem 0.75rem;
+}
+
+.header__logout {
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+}
+
+.header__logout:hover {
+  color: var(--color-text);
+  background: rgba(212, 175, 55, 0.1);
+}
+
 @media (max-width: 640px) {
   .header {
     flex-direction: column;

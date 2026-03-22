@@ -19,6 +19,9 @@ export default function PlayPage() {
         <Link className="play__skill-card" to="/play/mining">
           Mining
         </Link>
+        <Link className="play__skill-card" to="/play/hunting">
+          Hunting
+        </Link>
       </div>
     </main>
   )
