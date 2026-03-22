@@ -1,7 +1,9 @@
 .woodcutting {
+  width: 100%;
   max-width: var(--content-max-width);
   margin: 0 auto;
   padding: 2rem 1.5rem;
+  box-sizing: border-box;
 }
 
 .woodcutting__title {
@@ -58,11 +60,18 @@
 }
 
 .woodcutting__area {
+  width: 100%;
+  box-sizing: border-box;
   text-align: center;
   padding: 1.5rem;
   background: var(--color-card-bg);
   border-radius: 8px;
   border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.woodcutting__status {
+  width: 100%;
+  margin-bottom: 0;
 }
 
 .woodcutting__trees {
@@ -80,8 +89,13 @@
 }
 
 .woodcutting__hint {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   color: var(--color-text-muted);
   font-size: 0.9rem;
+  /* Keeps the status row height stable vs. the long idle line (avoids grid reflow) */
+  min-height: 3em;
   margin: 0 0 1rem;
 }
 
@@ -94,6 +108,11 @@
   max-width: 280px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* Progress track stays in layout when idle so the card width doesn’t jump */
+.woodcutting__progress-wrap--idle {
+  visibility: hidden;
 }
 
 .woodcutting__progress-bar {

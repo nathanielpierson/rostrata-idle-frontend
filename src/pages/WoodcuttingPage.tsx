@@ -1,37 +1,14 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { fetchTrees } from '../api/trees'
 import type { Tree } from '../types/tree'
+import {
+  getLevelFromXp,
+  MAX_LEVEL,
+  xpToReachLevel,
+} from '../progression/xpProgression'
 import './WoodcuttingPage.css'
 
 const XP_PER_CUT = 10
-
-const BASE_XP_LEVEL_2 = 500
-const LEVEL_MULTIPLIER = 1.09
-const MAX_LEVEL = 100
-
-/** Total XP required to reach a level (level 1 = 0, level 2 = 500, then +9% per level). */
-function xpToReachLevel(level: number): number {
-  if (level <= 1) return 0
-  if (level > MAX_LEVEL) level = MAX_LEVEL
-  return (
-    BASE_XP_LEVEL_2 *
-    (Math.pow(LEVEL_MULTIPLIER, level - 1) - 1) /
-    (LEVEL_MULTIPLIER - 1)
-  )
-}
-
-function getLevelFromXp(xp: number): number {
-  if (xp < BASE_XP_LEVEL_2) return 1
-  for (let level = MAX_LEVEL; level >= 1; level--) {
-    if (xp >= xpToReachLevel(level)) return level
-  }
-  return 1
-}
-
-function formatChopSeconds(seconds: number): string {
-  if (Number.isInteger(seconds)) return `${seconds}s`
-  return `${seconds.toFixed(1)}s`
-}
 
 function chopDurationMs(tree: Tree): number {
   return Math.max(1, tree.secondsToChop) * 1000
@@ -58,6 +35,16 @@ export default function WoodcuttingPage() {
   const xpNeededForNext = xpAtNextLevel - xpAtLevel
   const progressToNext =
     xpNeededForNext > 0 ? (xpInLevel / xpNeededForNext) * 100 : 100
+
+  const treesByLevel = useMemo(
+    () =>
+      [...trees].sort((a, b) => {
+        const byLevel = a.levelRequirement - b.levelRequirement
+        if (byLevel !== 0) return byLevel
+        return a.name.localeCompare(b.name)
+      }),
+    [trees],
+  )
 
   useEffect(() => {
     let mounted = true
@@ -104,10 +91,6 @@ export default function WoodcuttingPage() {
     return () => clearInterval(interval)
   }, [isCutting, cuttingTree])
 
-  const activeDurationMs = cuttingTree
-    ? chopDurationMs(cuttingTree)
-    : cutDurationMsRef.current
-
   const hintWhenIdle = (): string => {
     if (isLoadingTrees) return 'Loading trees…'
     if (treesError)
@@ -148,22 +131,26 @@ export default function WoodcuttingPage() {
       )}
 
       <section className="woodcutting__area">
-        <p className="woodcutting__hint">
-          {isCutting && cuttingTree
-            ? `Cutting ${cuttingTree.name}… ${Math.ceil((activeDurationMs / 1000) * (1 - progress / 100))}s`
-            : hintWhenIdle()}
-        </p>
-        {isCutting && (
-          <div className="woodcutting__progress-wrap">
+        <div className="woodcutting__status">
+          <p className="woodcutting__hint">
+            {isCutting && cuttingTree
+              ? `Cutting ${cuttingTree.name}…`
+              : hintWhenIdle()}
+          </p>
+          {/* Keep progress slot mounted so the card / tree grid width stays stable when chopping */}
+          <div
+            className={`woodcutting__progress-wrap${isCutting ? '' : ' woodcutting__progress-wrap--idle'}`}
+            aria-hidden={!isCutting}
+          >
             <div
               className="woodcutting__progress-bar"
-              style={{ width: `${progress}%` }}
+              style={{ width: isCutting ? `${progress}%` : '0%' }}
             />
           </div>
-        )}
+        </div>
 
         <ul className="woodcutting__trees">
-          {trees.map((tree) => {
+          {treesByLevel.map((tree) => {
             const locked = level < tree.levelRequirement
             const isThisCutting = isCutting && cuttingTree?.id === tree.id
             return (
@@ -196,8 +183,7 @@ export default function WoodcuttingPage() {
                   )}
                   <span className="woodcutting__tree-label">{tree.name}</span>
                   <span className="woodcutting__tree-meta">
-                    Lv {tree.levelRequirement} ·{' '}
-                    {formatChopSeconds(tree.secondsToChop)}
+                    Lv {tree.levelRequirement}
                   </span>
                   {locked && (
                     <span className="woodcutting__tree-lock">
