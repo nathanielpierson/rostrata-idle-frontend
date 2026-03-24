@@ -1,24 +1,25 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
-import { fetchTrees } from '../api/trees'
+import { fetchTrees, chopTree } from '../api/trees'
 import type { Tree } from '../types/tree'
 import {
   getLevelFromXp,
   MAX_LEVEL,
   xpToReachLevel,
 } from '../progression/xpProgression'
+import { useAuth } from '../context/AuthContext'
 import './WoodcuttingPage.css'
-
-const XP_PER_CUT = 10
 
 function chopDurationMs(tree: Tree): number {
   return Math.max(1, tree.secondsToChop) * 1000
 }
 
 export default function WoodcuttingPage() {
+  const { user, loading: authLoading } = useAuth()
   const [xp, setXp] = useState(0)
   const [trees, setTrees] = useState<Tree[]>([])
   const [isLoadingTrees, setIsLoadingTrees] = useState(true)
   const [treesError, setTreesError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const [isCutting, setIsCutting] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -36,6 +37,9 @@ export default function WoodcuttingPage() {
   const progressToNext =
     xpNeededForNext > 0 ? (xpInLevel / xpNeededForNext) * 100 : 100
 
+  /** Never render tree cards until session is resolved and user is logged in. */
+  const showTrees = Boolean(user) && !authLoading
+
   const treesByLevel = useMemo(
     () =>
       [...trees].sort((a, b) => {
@@ -47,7 +51,15 @@ export default function WoodcuttingPage() {
   )
 
   useEffect(() => {
+    if (authLoading) return
+    if (!user) {
+      setTrees([])
+      setTreesError(null)
+      setIsLoadingTrees(false)
+      return
+    }
     let mounted = true
+    setIsLoadingTrees(true)
     const load = async () => {
       const { trees: list, error } = await fetchTrees()
       if (!mounted) return
@@ -55,15 +67,25 @@ export default function WoodcuttingPage() {
       setTreesError(error)
       setIsLoadingTrees(false)
     }
-    load()
+    void load()
     return () => {
       mounted = false
     }
-  }, [])
+  }, [authLoading, user])
+
+  useEffect(() => {
+    if (authLoading) return
+    setXp(user?.woodcuttingXp ?? 0)
+  }, [authLoading, user])
 
   const startChop = useCallback(
     (tree: Tree) => {
+      if (!user) {
+        setActionError('Log in to train woodcutting and save your XP.')
+        return
+      }
       if (isCutting || level < tree.levelRequirement) return
+      setActionError(null)
       const ms = chopDurationMs(tree)
       cutDurationMsRef.current = ms
       cutStartRef.current = Date.now()
@@ -71,7 +93,7 @@ export default function WoodcuttingPage() {
       setIsCutting(true)
       setProgress(0)
     },
-    [isCutting, level],
+    [isCutting, level, user],
   )
 
   useEffect(() => {
@@ -81,17 +103,32 @@ export default function WoodcuttingPage() {
       const elapsed = Date.now() - (cutStartRef.current ?? 0)
       setProgress(Math.min((elapsed / durationMs) * 100, 100))
       if (elapsed >= durationMs) {
-        setXp((prev) => prev + XP_PER_CUT)
+        // Stop immediately — otherwise this callback fires every 100ms until the
+        // effect re-runs, sending duplicate POST /trees/{id}/chop requests.
+        clearInterval(interval)
         setIsCutting(false)
         setProgress(0)
+        const finishedTree = cuttingTree
         setCuttingTree(null)
         cutStartRef.current = null
+        void (async () => {
+          const { result, error } = await chopTree(finishedTree.id)
+          if (result) {
+            setXp(result.woodcuttingXpTotal)
+            return
+          }
+          if (error) {
+            setActionError(error)
+          }
+        })()
       }
     }, 100)
     return () => clearInterval(interval)
   }, [isCutting, cuttingTree])
 
   const hintWhenIdle = (): string => {
+    if (authLoading) return 'Checking session…'
+    if (!user) return 'Log in to see trees and train woodcutting.'
     if (isLoadingTrees) return 'Loading trees…'
     if (treesError)
       return treesError
@@ -137,6 +174,9 @@ export default function WoodcuttingPage() {
               ? `Cutting ${cuttingTree.name}…`
               : hintWhenIdle()}
           </p>
+          {actionError && (
+            <p className="woodcutting__error" role="alert">{actionError}</p>
+          )}
           {/* Keep progress slot mounted so the card / tree grid width stays stable when chopping */}
           <div
             className={`woodcutting__progress-wrap${isCutting ? '' : ' woodcutting__progress-wrap--idle'}`}
@@ -149,6 +189,7 @@ export default function WoodcuttingPage() {
           </div>
         </div>
 
+        {showTrees && (
         <ul className="woodcutting__trees">
           {treesByLevel.map((tree) => {
             const locked = level < tree.levelRequirement
@@ -200,6 +241,7 @@ export default function WoodcuttingPage() {
             )
           })}
         </ul>
+        )}
       </section>
     </main>
   )

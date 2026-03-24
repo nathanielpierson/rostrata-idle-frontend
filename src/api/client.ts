@@ -19,9 +19,14 @@ export async function apiRequest<T>(
 ): Promise<{ data?: T; status: number; ok: boolean; error?: string }> {
   const { method = 'GET', body, headers = {}, username, password } = options;
   const requestHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...headers,
   };
+  // Only send JSON content type when there is a body. POST with
+  // Content-Type: application/json and an empty body can cause Spring to return
+  // 400 (e.g. "Required request body is missing") for some endpoints.
+  if (body !== undefined && body !== '') {
+    requestHeaders['Content-Type'] = 'application/json';
+  }
   if (username && password) {
     requestHeaders['Authorization'] = getAuthHeader(username, password);
   }
@@ -43,7 +48,14 @@ export async function apiRequest<T>(
     }
     const errorMessage = res.ok
       ? undefined
-      : (data as { message?: string } | undefined)?.message ?? (text || res.statusText);
+      : (() => {
+          if (typeof data === 'object' && data !== null) {
+            const d = data as { message?: string; error?: string; path?: string };
+            if (d.message) return d.message;
+            if (d.error && d.path) return `${d.error} (${d.path})`;
+          }
+          return text || res.statusText;
+        })();
     return {
       data,
       status: res.status,

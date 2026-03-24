@@ -11,6 +11,7 @@ import SignupPage from './pages/SignupPage'
 import FishingPage from './pages/FishingPage'
 import MiningPage from './pages/MiningPage'
 import HuntingPage from './pages/HuntingPage'
+import AboutPage from './pages/AboutPage'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
       <Header />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="/play" element={<PlayPage />} />
         <Route path="/play/woodcutting" element={<WoodcuttingPage />} />
         <Route path="/play/fishing" element={<FishingPage />} />
