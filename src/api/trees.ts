@@ -31,6 +31,15 @@ export interface ChopTreeResult {
   treeId: number;
   xpGranted: number;
   woodcuttingXpTotal: number;
+  storageDeltas?: StorageDelta[];
+}
+
+export interface StorageDelta {
+  itemKey: string;
+  itemName: string;
+  itemImageUrl: string;
+  quantityAdded: number;
+  newQuantity: number;
 }
 
 export async function chopTree(treeId: number): Promise<{ result?: ChopTreeResult; error?: string }> {

@@ -1,12 +1,15 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
-import { fetchTrees, chopTree } from '../api/trees'
+import { fetchTrees, chopTree, type StorageDelta } from '../api/trees'
+import { fetchStorage } from '../api/storage'
 import type { Tree } from '../types/tree'
+import type { StorageItem } from '../types/storage'
 import {
   getLevelFromXp,
   MAX_LEVEL,
   xpToReachLevel,
 } from '../progression/xpProgression'
 import { useAuth } from '../context/AuthContext'
+import StoragePanel from '../components/StoragePanel'
 import './WoodcuttingPage.css'
 
 function chopDurationMs(tree: Tree): number {
@@ -20,6 +23,10 @@ export default function WoodcuttingPage() {
   const [isLoadingTrees, setIsLoadingTrees] = useState(true)
   const [treesError, setTreesError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+
+  const [storageItems, setStorageItems] = useState<StorageItem[]>([])
+  const [isLoadingStorage, setIsLoadingStorage] = useState(false)
+  const [storageError, setStorageError] = useState<string | null>(null)
 
   const [isCutting, setIsCutting] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -39,6 +46,7 @@ export default function WoodcuttingPage() {
 
   /** Never render tree cards until session is resolved and user is logged in. */
   const showTrees = Boolean(user) && !authLoading
+  const showStorage = Boolean(user) && !authLoading
 
   const treesByLevel = useMemo(
     () =>
@@ -75,8 +83,60 @@ export default function WoodcuttingPage() {
 
   useEffect(() => {
     if (authLoading) return
+    if (!user) {
+      setStorageItems([])
+      setStorageError(null)
+      setIsLoadingStorage(false)
+      return
+    }
+
+    let mounted = true
+    setIsLoadingStorage(true)
+    const load = async () => {
+      const { items, error } = await fetchStorage()
+      if (!mounted) return
+      setStorageItems(items)
+      setStorageError(error)
+      setIsLoadingStorage(false)
+    }
+    void load()
+
+    return () => {
+      mounted = false
+    }
+  }, [authLoading, user])
+
+  useEffect(() => {
+    if (authLoading) return
     setXp(user?.woodcuttingXp ?? 0)
   }, [authLoading, user])
+
+  const applyStorageDeltas = useCallback((deltas: StorageDelta[]) => {
+    setStorageItems((prev) => {
+      const byKey = new Map(prev.map((i) => [i.itemKey, i]))
+      for (const delta of deltas) {
+        const existing = byKey.get(delta.itemKey)
+        if (existing) {
+          byKey.set(delta.itemKey, {
+            ...existing,
+            itemName: delta.itemName,
+            itemImageUrl: delta.itemImageUrl,
+            quantity: delta.newQuantity,
+          })
+        } else {
+          byKey.set(delta.itemKey, {
+            itemKey: delta.itemKey,
+            itemName: delta.itemName,
+            itemImageUrl: delta.itemImageUrl,
+            quantity: delta.newQuantity,
+          })
+        }
+      }
+      return Array.from(byKey.values()).sort((a, b) =>
+        a.itemName.localeCompare(b.itemName),
+      )
+    })
+  }, [])
 
   const startChop = useCallback(
     (tree: Tree) => {
@@ -115,6 +175,9 @@ export default function WoodcuttingPage() {
           const { result, error } = await chopTree(finishedTree.id)
           if (result) {
             setXp(result.woodcuttingXpTotal)
+            if (result.storageDeltas?.length) {
+              applyStorageDeltas(result.storageDeltas)
+            }
             return
           }
           if (error) {
@@ -124,7 +187,7 @@ export default function WoodcuttingPage() {
       }
     }, 100)
     return () => clearInterval(interval)
-  }, [isCutting, cuttingTree])
+  }, [isCutting, cuttingTree, applyStorageDeltas])
 
   const hintWhenIdle = (): string => {
     if (authLoading) return 'Checking session…'
@@ -243,6 +306,14 @@ export default function WoodcuttingPage() {
         </ul>
         )}
       </section>
+
+      {showStorage && (
+        <StoragePanel
+          items={storageItems}
+          loading={isLoadingStorage}
+          error={storageError}
+        />
+      )}
     </main>
   )
 }
