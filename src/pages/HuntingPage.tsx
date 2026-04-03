@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import './FishingPage.css'
+import './MiningPage.css'
 
 export default function HuntingPage() {
   return (
