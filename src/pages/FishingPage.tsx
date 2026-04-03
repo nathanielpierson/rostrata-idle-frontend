@@ -13,8 +13,15 @@ import { useAuth } from '../context/AuthContext'
 import StoragePanel from '../components/StoragePanel'
 import './FishingPage.css'
 
+/** Random duration for this attempt, in seconds inclusive of min and max. */
+function randomFishDurationSeconds(fish: Fish): number {
+  const min = Math.min(fish.minSecondsToFish, fish.maxSecondsToFish)
+  const max = Math.max(fish.minSecondsToFish, fish.maxSecondsToFish)
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
 function fishDurationMs(fish: Fish): number {
-  return Math.max(1, fish.secondsToFish) * 1000
+  return Math.max(1, randomFishDurationSeconds(fish)) * 1000
 }
 
 export default function FishingPage() {
